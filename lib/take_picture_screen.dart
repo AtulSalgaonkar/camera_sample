@@ -11,7 +11,9 @@ import 'package:video_player/video_player.dart';
 /// Camera example home widget.
 class CameraExampleHome extends StatefulWidget {
   /// Default Constructor
-  const CameraExampleHome({super.key});
+  CameraExampleHome({super.key});
+
+  GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   State<CameraExampleHome> createState() {
@@ -117,51 +119,56 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     if (state == AppLifecycleState.inactive) {
       cameraController.dispose();
     } else if (state == AppLifecycleState.resumed) {
-      _initializeCameraController(cameraController.description);
+      if (widget.navigatorKey.currentContext != null) {
+        _initializeCameraController(cameraController.description, widget.navigatorKey.currentContext!);
+      }
     }
   }
   // #enddocregion AppLifecycle
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Camera example'),
-      ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black,
-                border: Border.all(
-                  color:
-                  controller != null && controller!.value.isRecordingVideo
-                      ? Colors.redAccent
-                      : Colors.grey,
-                  width: 3.0,
+    return MaterialApp(
+      navigatorKey: widget.navigatorKey,
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Camera example'),
+        ),
+        body: Column(
+          children: <Widget>[
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  border: Border.all(
+                    color:
+                    controller != null && controller!.value.isRecordingVideo
+                        ? Colors.redAccent
+                        : Colors.grey,
+                    width: 3.0,
+                  ),
                 ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(1.0),
-                child: Center(
-                  child: _cameraPreviewWidget(),
+                child: Padding(
+                  padding: const EdgeInsets.all(1.0),
+                  child: Center(
+                    child: _cameraPreviewWidget(),
+                  ),
                 ),
               ),
             ),
-          ),
-          _captureControlRowWidget(),
-          _modeControlRowWidget(),
-          Padding(
-            padding: const EdgeInsets.all(5.0),
-            child: Row(
-              children: <Widget>[
-                _cameraTogglesRowWidget(),
-                _thumbnailWidget(),
-              ],
+            _captureControlRowWidget(context),
+            _modeControlRowWidget(context),
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Row(
+                children: <Widget>[
+                  _cameraTogglesRowWidget(context),
+                  _thumbnailWidget(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -261,7 +268,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
   }
 
   /// Display a bar with buttons to change the flash and exposure modes
-  Widget _modeControlRowWidget() {
+  Widget _modeControlRowWidget(BuildContext context) {
     return Column(
       children: <Widget>[
         Row(
@@ -293,7 +300,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
             IconButton(
               icon: Icon(enableAudio ? Icons.volume_up : Icons.volume_mute),
               color: Colors.blue,
-              onPressed: controller != null ? onAudioModeButtonPressed : null,
+              onPressed: controller != null ? () => onAudioModeButtonPressed(context) : null,
             ),
             IconButton(
               icon: Icon(controller?.value.isCaptureOrientationLocked ?? false
@@ -301,19 +308,20 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   : Icons.screen_rotation),
               color: Colors.blue,
               onPressed: controller != null
-                  ? onCaptureOrientationLockButtonPressed
+                  ? () => onCaptureOrientationLockButtonPressed(context)
                   : null,
+
             ),
           ],
         ),
-        _flashModeControlRowWidget(),
-        _exposureModeControlRowWidget(),
-        _focusModeControlRowWidget(),
+        _flashModeControlRowWidget(context),
+        _exposureModeControlRowWidget(context),
+        _focusModeControlRowWidget(context),
       ],
     );
   }
 
-  Widget _flashModeControlRowWidget() {
+  Widget _flashModeControlRowWidget(BuildContext context) {
     return SizeTransition(
       sizeFactor: _flashModeControlRowAnimation,
       child: ClipRect(
@@ -326,7 +334,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   ? Colors.orange
                   : Colors.blue,
               onPressed: controller != null
-                  ? () => onSetFlashModeButtonPressed(FlashMode.off)
+                  ? () => onSetFlashModeButtonPressed(FlashMode.off, context)
                   : null,
             ),
             IconButton(
@@ -335,7 +343,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   ? Colors.orange
                   : Colors.blue,
               onPressed: controller != null
-                  ? () => onSetFlashModeButtonPressed(FlashMode.auto)
+                  ? () => onSetFlashModeButtonPressed(FlashMode.auto, context)
                   : null,
             ),
             IconButton(
@@ -344,7 +352,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   ? Colors.orange
                   : Colors.blue,
               onPressed: controller != null
-                  ? () => onSetFlashModeButtonPressed(FlashMode.always)
+                  ? () => onSetFlashModeButtonPressed(FlashMode.always, context)
                   : null,
             ),
             IconButton(
@@ -353,7 +361,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   ? Colors.orange
                   : Colors.blue,
               onPressed: controller != null
-                  ? () => onSetFlashModeButtonPressed(FlashMode.torch)
+                  ? () => onSetFlashModeButtonPressed(FlashMode.torch, context)
                   : null,
             ),
           ],
@@ -362,7 +370,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     );
   }
 
-  Widget _exposureModeControlRowWidget() {
+  Widget _exposureModeControlRowWidget(BuildContext context) {
     final ButtonStyle styleAuto = TextButton.styleFrom(
       // TODO(darrenaustin): Migrate to new API once it lands in stable: https://github.com/flutter/flutter/issues/105724
       // ignore: deprecated_member_use
@@ -395,12 +403,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                     style: styleAuto,
                     onPressed: controller != null
                         ? () =>
-                        onSetExposureModeButtonPressed(ExposureMode.auto)
+                        onSetExposureModeButtonPressed(ExposureMode.auto, context)
                         : null,
                     onLongPress: () {
                       if (controller != null) {
                         controller!.setExposurePoint(null);
-                        showInSnackBar('Resetting exposure point');
+                        showInSnackBar('Resetting exposure point', context);
                       }
                     },
                     child: const Text('AUTO'),
@@ -409,7 +417,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                     style: styleLocked,
                     onPressed: controller != null
                         ? () =>
-                        onSetExposureModeButtonPressed(ExposureMode.locked)
+                        onSetExposureModeButtonPressed(ExposureMode.locked, context)
                         : null,
                     child: const Text('LOCKED'),
                   ),
@@ -437,7 +445,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                     onChanged: _minAvailableExposureOffset ==
                         _maxAvailableExposureOffset
                         ? null
-                        : setExposureOffset,
+                        : (value) => setExposureOffset(value, context),
                   ),
                   Text(_maxAvailableExposureOffset.toString()),
                 ],
@@ -449,7 +457,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     );
   }
 
-  Widget _focusModeControlRowWidget() {
+  Widget _focusModeControlRowWidget(BuildContext context) {
     final ButtonStyle styleAuto = TextButton.styleFrom(
       // TODO(darrenaustin): Migrate to new API once it lands in stable: https://github.com/flutter/flutter/issues/105724
       // ignore: deprecated_member_use
@@ -481,20 +489,20 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
                   TextButton(
                     style: styleAuto,
                     onPressed: controller != null
-                        ? () => onSetFocusModeButtonPressed(FocusMode.auto)
+                        ? () => onSetFocusModeButtonPressed(FocusMode.auto, context)
                         : null,
                     onLongPress: () {
                       if (controller != null) {
                         controller!.setFocusPoint(null);
                       }
-                      showInSnackBar('Resetting focus point');
+                      showInSnackBar('Resetting focus point', context);
                     },
                     child: const Text('AUTO'),
                   ),
                   TextButton(
                     style: styleLocked,
                     onPressed: controller != null
-                        ? () => onSetFocusModeButtonPressed(FocusMode.locked)
+                        ? () => onSetFocusModeButtonPressed(FocusMode.locked, context)
                         : null,
                     child: const Text('LOCKED'),
                   ),
@@ -508,7 +516,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
   }
 
   /// Display the control bar with buttons to take pictures and record videos.
-  Widget _captureControlRowWidget() {
+  Widget _captureControlRowWidget(BuildContext context) {
     final CameraController? cameraController = controller;
 
     return Row(
@@ -520,7 +528,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           onPressed: cameraController != null &&
               cameraController.value.isInitialized &&
               !cameraController.value.isRecordingVideo
-              ? onTakePictureButtonPressed
+              ? () => onTakePictureButtonPressed(context)
               : null,
         ),
         IconButton(
@@ -529,7 +537,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           onPressed: cameraController != null &&
               cameraController.value.isInitialized &&
               !cameraController.value.isRecordingVideo
-              ? onVideoRecordButtonPressed
+              ? () => onVideoRecordButtonPressed(context)
               : null,
         ),
         IconButton(
@@ -542,8 +550,8 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
               cameraController.value.isInitialized &&
               cameraController.value.isRecordingVideo
               ? (cameraController.value.isRecordingPaused)
-              ? onResumeButtonPressed
-              : onPauseButtonPressed
+              ? () => onResumeButtonPressed(context)
+              : () => onPauseButtonPressed(context)
               : null,
         ),
         IconButton(
@@ -552,7 +560,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           onPressed: cameraController != null &&
               cameraController.value.isInitialized &&
               cameraController.value.isRecordingVideo
-              ? onStopButtonPressed
+              ? () => onStopButtonPressed(context)
               : null,
         ),
         IconButton(
@@ -562,14 +570,14 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
               ? Colors.red
               : Colors.blue,
           onPressed:
-          cameraController == null ? null : onPausePreviewButtonPressed,
+          cameraController == null ? null : () => onPausePreviewButtonPressed(context),
         ),
       ],
     );
   }
 
   /// Display a row of toggle to select the camera (or a message if no camera is available).
-  Widget _cameraTogglesRowWidget() {
+  Widget _cameraTogglesRowWidget(BuildContext context) {
     final List<Widget> toggles = <Widget>[];
 
     void onChanged(CameraDescription? description) {
@@ -577,12 +585,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
         return;
       }
 
-      onNewCameraSelected(description);
+      onNewCameraSelected(description, context);
     }
 
     if (_cameras.isEmpty) {
       SchedulerBinding.instance.addPostFrameCallback((_) async {
-        showInSnackBar('No camera found.');
+        showInSnackBar('No camera found.', context);
       });
       return const Text('None');
     } else {
@@ -606,8 +614,8 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
 
   String timestamp() => DateTime.now().millisecondsSinceEpoch.toString();
 
-  void showInSnackBar(String message) {
-    ScaffoldMessenger.of(context as BuildContext)
+  void showInSnackBar(String message, BuildContext context) {
+    ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
@@ -626,16 +634,16 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     cameraController.setFocusPoint(offset);
   }
 
-  Future<void> onNewCameraSelected(CameraDescription cameraDescription) async {
+  Future<void> onNewCameraSelected(CameraDescription cameraDescription, BuildContext context) async {
     if (controller != null) {
       return controller!.setDescription(cameraDescription);
     } else {
-      return _initializeCameraController(cameraDescription);
+      return _initializeCameraController(cameraDescription, context);
     }
   }
 
   Future<void> _initializeCameraController(
-      CameraDescription cameraDescription) async {
+      CameraDescription cameraDescription, BuildContext context) async {
     final CameraController cameraController = CameraController(
       cameraDescription,
       kIsWeb ? ResolutionPreset.max : ResolutionPreset.medium,
@@ -652,7 +660,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       }
       if (cameraController.value.hasError) {
         showInSnackBar(
-            'Camera error ${cameraController.value.errorDescription}');
+            'Camera error ${cameraController.value.errorDescription}', context);
       }
     });
 
@@ -679,29 +687,29 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     } on CameraException catch (e) {
       switch (e.code) {
         case 'CameraAccessDenied':
-          showInSnackBar('You have denied camera access.');
+          showInSnackBar('You have denied camera access.', context);
           break;
         case 'CameraAccessDeniedWithoutPrompt':
         // iOS only
-          showInSnackBar('Please go to Settings app to enable camera access.');
+          showInSnackBar('Please go to Settings app to enable camera access.', context);
           break;
         case 'CameraAccessRestricted':
         // iOS only
-          showInSnackBar('Camera access is restricted.');
+          showInSnackBar('Camera access is restricted.', context);
           break;
         case 'AudioAccessDenied':
-          showInSnackBar('You have denied audio access.');
+          showInSnackBar('You have denied audio access.', context);
           break;
         case 'AudioAccessDeniedWithoutPrompt':
         // iOS only
-          showInSnackBar('Please go to Settings app to enable audio access.');
+          showInSnackBar('Please go to Settings app to enable audio access.', context);
           break;
         case 'AudioAccessRestricted':
         // iOS only
-          showInSnackBar('Audio access is restricted.');
+          showInSnackBar('Audio access is restricted.', context);
           break;
         default:
-          _showCameraException(e);
+          _showCameraException(e, context);
           break;
       }
     }
@@ -711,8 +719,8 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     }
   }
 
-  void onTakePictureButtonPressed() {
-    takePicture().then((XFile? file) {
+  void onTakePictureButtonPressed(BuildContext context) {
+    takePicture(context).then((XFile? file) {
       if (mounted) {
         setState(() {
           imageFile = file;
@@ -720,7 +728,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
           videoController = null;
         });
         if (file != null) {
-          showInSnackBar('Picture saved to ${file.path}');
+          showInSnackBar('Picture saved to ${file.path}', context);
         }
       }
     });
@@ -756,84 +764,84 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     }
   }
 
-  void onAudioModeButtonPressed() {
+  void onAudioModeButtonPressed(BuildContext context) {
     enableAudio = !enableAudio;
     if (controller != null) {
-      onNewCameraSelected(controller!.description);
+      onNewCameraSelected(controller!.description, context);
     }
   }
 
-  Future<void> onCaptureOrientationLockButtonPressed() async {
+  Future<void> onCaptureOrientationLockButtonPressed(BuildContext context) async {
     try {
       if (controller != null) {
         final CameraController cameraController = controller!;
         if (cameraController.value.isCaptureOrientationLocked) {
           await cameraController.unlockCaptureOrientation();
-          showInSnackBar('Capture orientation unlocked');
+          showInSnackBar('Capture orientation unlocked', context);
         } else {
           await cameraController.lockCaptureOrientation();
           showInSnackBar(
-              'Capture orientation locked to ${cameraController.value.lockedCaptureOrientation.toString().split('.').last}');
+              'Capture orientation locked to ${cameraController.value.lockedCaptureOrientation.toString().split('.').last}', context);
         }
       }
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
     }
   }
 
-  void onSetFlashModeButtonPressed(FlashMode mode) {
-    setFlashMode(mode).then((_) {
+  void onSetFlashModeButtonPressed(FlashMode mode, BuildContext context) {
+    setFlashMode(mode, context).then((_) {
       if (mounted) {
         setState(() {});
       }
-      showInSnackBar('Flash mode set to ${mode.toString().split('.').last}');
+      showInSnackBar('Flash mode set to ${mode.toString().split('.').last}', context);
     });
   }
 
-  void onSetExposureModeButtonPressed(ExposureMode mode) {
-    setExposureMode(mode).then((_) {
+  void onSetExposureModeButtonPressed(ExposureMode mode, BuildContext context) {
+    setExposureMode(mode, context).then((_) {
       if (mounted) {
         setState(() {});
       }
-      showInSnackBar('Exposure mode set to ${mode.toString().split('.').last}');
+      showInSnackBar('Exposure mode set to ${mode.toString().split('.').last}', context);
     });
   }
 
-  void onSetFocusModeButtonPressed(FocusMode mode) {
-    setFocusMode(mode).then((_) {
+  void onSetFocusModeButtonPressed(FocusMode mode, BuildContext context) {
+    setFocusMode(mode, context).then((_) {
       if (mounted) {
         setState(() {});
       }
-      showInSnackBar('Focus mode set to ${mode.toString().split('.').last}');
+      showInSnackBar('Focus mode set to ${mode.toString().split('.').last}', context);
     });
   }
 
-  void onVideoRecordButtonPressed() {
-    startVideoRecording().then((_) {
+  void onVideoRecordButtonPressed(BuildContext context) {
+    startVideoRecording(context).then((_) {
       if (mounted) {
         setState(() {});
       }
     });
   }
 
-  void onStopButtonPressed() {
-    stopVideoRecording().then((XFile? file) {
+  void onStopButtonPressed(BuildContext context) {
+    stopVideoRecording(context).then((XFile? file) {
       if (mounted) {
         setState(() {});
       }
       if (file != null) {
-        showInSnackBar('Video recorded to ${file.path}');
+        showInSnackBar('Video recorded to ${file.path}', context);
         videoFile = file;
         _startVideoPlayer();
       }
     });
   }
 
-  Future<void> onPausePreviewButtonPressed() async {
+  Future<void> onPausePreviewButtonPressed(BuildContext context) async {
     final CameraController? cameraController = controller;
 
     if (cameraController == null || !cameraController.value.isInitialized) {
-      showInSnackBar('Error: select a camera first.');
+      showInSnackBar('Error: select a camera first.', context);
       return;
     }
 
@@ -848,29 +856,29 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     }
   }
 
-  void onPauseButtonPressed() {
-    pauseVideoRecording().then((_) {
+  void onPauseButtonPressed(BuildContext context) {
+    pauseVideoRecording(context).then((_) {
       if (mounted) {
         setState(() {});
       }
-      showInSnackBar('Video recording paused');
+      showInSnackBar('Video recording paused', context);
     });
   }
 
-  void onResumeButtonPressed() {
-    resumeVideoRecording().then((_) {
+  void onResumeButtonPressed(BuildContext context) {
+    resumeVideoRecording(context).then((_) {
       if (mounted) {
         setState(() {});
       }
-      showInSnackBar('Video recording resumed');
+      showInSnackBar('Video recording resumed', context);
     });
   }
 
-  Future<void> startVideoRecording() async {
+  Future<void> startVideoRecording(BuildContext context) async {
     final CameraController? cameraController = controller;
 
     if (cameraController == null || !cameraController.value.isInitialized) {
-      showInSnackBar('Error: select a camera first.');
+      showInSnackBar('Error: select a camera first.', context);
       return;
     }
 
@@ -882,12 +890,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       await cameraController.startVideoRecording();
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       return;
     }
   }
 
-  Future<XFile?> stopVideoRecording() async {
+  Future<XFile?> stopVideoRecording(BuildContext context) async {
     final CameraController? cameraController = controller;
 
     if (cameraController == null || !cameraController.value.isRecordingVideo) {
@@ -897,12 +905,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       return cameraController.stopVideoRecording();
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       return null;
     }
   }
 
-  Future<void> pauseVideoRecording() async {
+  Future<void> pauseVideoRecording(BuildContext context) async {
     final CameraController? cameraController = controller;
 
     if (cameraController == null || !cameraController.value.isRecordingVideo) {
@@ -912,12 +920,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       await cameraController.pauseVideoRecording();
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       rethrow;
     }
   }
 
-  Future<void> resumeVideoRecording() async {
+  Future<void> resumeVideoRecording(BuildContext context) async {
     final CameraController? cameraController = controller;
 
     if (cameraController == null || !cameraController.value.isRecordingVideo) {
@@ -927,12 +935,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       await cameraController.resumeVideoRecording();
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       rethrow;
     }
   }
 
-  Future<void> setFlashMode(FlashMode mode) async {
+  Future<void> setFlashMode(FlashMode mode, BuildContext context) async {
     if (controller == null) {
       return;
     }
@@ -940,12 +948,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       await controller!.setFlashMode(mode);
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       rethrow;
     }
   }
 
-  Future<void> setExposureMode(ExposureMode mode) async {
+  Future<void> setExposureMode(ExposureMode mode, BuildContext context) async {
     if (controller == null) {
       return;
     }
@@ -953,12 +961,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       await controller!.setExposureMode(mode);
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       rethrow;
     }
   }
 
-  Future<void> setExposureOffset(double offset) async {
+  Future<void> setExposureOffset(double offset, BuildContext context) async {
     if (controller == null) {
       return;
     }
@@ -969,12 +977,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       offset = await controller!.setExposureOffset(offset);
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       rethrow;
     }
   }
 
-  Future<void> setFocusMode(FocusMode mode) async {
+  Future<void> setFocusMode(FocusMode mode, BuildContext context) async {
     if (controller == null) {
       return;
     }
@@ -982,7 +990,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     try {
       await controller!.setFocusMode(mode);
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       rethrow;
     }
   }
@@ -1018,10 +1026,10 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     await vController.play();
   }
 
-  Future<XFile?> takePicture() async {
+  Future<XFile?> takePicture(BuildContext context) async {
     final CameraController? cameraController = controller;
     if (cameraController == null || !cameraController.value.isInitialized) {
-      showInSnackBar('Error: select a camera first.');
+      showInSnackBar('Error: select a camera first.', context);
       return null;
     }
 
@@ -1034,14 +1042,14 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       final XFile file = await cameraController.takePicture();
       return file;
     } on CameraException catch (e) {
-      _showCameraException(e);
+      _showCameraException(e, context);
       return null;
     }
   }
 
-  void _showCameraException(CameraException e) {
+  void _showCameraException(CameraException e, BuildContext context) {
     _logError(e.code, e.description);
-    showInSnackBar('Error: ${e.code}\n${e.description}');
+    showInSnackBar('Error: ${e.code}\n${e.description}', context);
   }
 }
 
@@ -1052,9 +1060,7 @@ class TakePictureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: CameraExampleHome(),
-    );
+    return CameraExampleHome();
   }
 }
 
@@ -1068,5 +1074,5 @@ Future<void> main() async {
   } on CameraException catch (e) {
     _logError(e.code, e.description);
   }
-  runApp(const TakePictureScreen());
+  runApp(CameraExampleHome());
 }
