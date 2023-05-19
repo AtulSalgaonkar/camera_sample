@@ -96,6 +96,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       parent: _focusModeControlRowAnimationController,
       curve: Curves.easeInCubic,
     );
+    _initializeCameraController(_cameras.first);
   }
 
   @override
@@ -120,7 +121,7 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
       cameraController.dispose();
     } else if (state == AppLifecycleState.resumed) {
       if (widget.navigatorKey.currentContext != null) {
-        _initializeCameraController(cameraController.description, widget.navigatorKey.currentContext!);
+        _initializeCameraController(cameraController.description);
       }
     }
   }
@@ -638,12 +639,12 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     if (controller != null) {
       return controller!.setDescription(cameraDescription);
     } else {
-      return _initializeCameraController(cameraDescription, context);
+      return _initializeCameraController(cameraDescription);
     }
   }
 
   Future<void> _initializeCameraController(
-      CameraDescription cameraDescription, BuildContext context) async {
+      CameraDescription cameraDescription) async {
     final CameraController cameraController = CameraController(
       cameraDescription,
       kIsWeb ? ResolutionPreset.max : ResolutionPreset.medium,
@@ -652,6 +653,9 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     );
 
     controller = cameraController;
+    setState(() {
+      controller?.setDescription(cameraDescription);
+    });
 
     // If the controller is updated then update the UI.
     cameraController.addListener(() {
@@ -659,8 +663,11 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
         setState(() {});
       }
       if (cameraController.value.hasError) {
-        showInSnackBar(
-            'Camera error ${cameraController.value.errorDescription}', context);
+        if (widget.navigatorKey.currentContext != null) {
+          showInSnackBar(
+              'Camera error ${cameraController.value.errorDescription}',
+              widget.navigatorKey.currentContext!);
+        }
       }
     });
 
@@ -687,29 +694,57 @@ class _CameraExampleHomeState extends State<CameraExampleHome>
     } on CameraException catch (e) {
       switch (e.code) {
         case 'CameraAccessDenied':
-          showInSnackBar('You have denied camera access.', context);
+          if (widget.navigatorKey.currentContext != null) {
+            showInSnackBar(
+                'You have denied camera access.',
+                widget.navigatorKey.currentContext!);
+          }
           break;
         case 'CameraAccessDeniedWithoutPrompt':
+          if (widget.navigatorKey.currentContext != null) {
+            showInSnackBar(
+                'Please go to Settings app to enable camera access.',
+                widget.navigatorKey.currentContext!);
+          }
         // iOS only
-          showInSnackBar('Please go to Settings app to enable camera access.', context);
           break;
         case 'CameraAccessRestricted':
+          if (widget.navigatorKey.currentContext != null) {
+            showInSnackBar(
+                'Camera access is restricted.',
+                widget.navigatorKey.currentContext!);
+          }
         // iOS only
-          showInSnackBar('Camera access is restricted.', context);
           break;
         case 'AudioAccessDenied':
-          showInSnackBar('You have denied audio access.', context);
+          if (widget.navigatorKey.currentContext != null) {
+            showInSnackBar(
+                'You have denied audio access.',
+                widget.navigatorKey.currentContext!);
+          }
           break;
         case 'AudioAccessDeniedWithoutPrompt':
+          if (widget.navigatorKey.currentContext != null) {
+            showInSnackBar(
+                'Please go to Settings app to enable audio access.',
+                widget.navigatorKey.currentContext!);
+          }
         // iOS only
-          showInSnackBar('Please go to Settings app to enable audio access.', context);
           break;
         case 'AudioAccessRestricted':
+          if (widget.navigatorKey.currentContext != null) {
+            showInSnackBar(
+                'Audio access is restricted.',
+                widget.navigatorKey.currentContext!);
+          }
         // iOS only
-          showInSnackBar('Audio access is restricted.', context);
           break;
         default:
-          _showCameraException(e, context);
+          if (widget.navigatorKey.currentContext != null) {
+            _showCameraException(
+                e,
+                widget.navigatorKey.currentContext!);
+          }
           break;
       }
     }
